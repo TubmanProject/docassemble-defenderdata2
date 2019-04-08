@@ -207,44 +207,59 @@ section: intake
 ---
 continue button field: checklist
 question: |
-    ${ClientChargeInitial} Checklist for ${ClientCaseID}
+    Checklist for ${ClientCaseID}<br>
+    Charge: ${ClientChargeInitial}<br>
+    Client Prior Status: ${ClientPriors}<br>
+subquestion: |
+    % if ClientPriors != "Mandatory":
+      I'm sorry, but no checklist has been made that fits the paramaters of your case yet.  I think you should ask your supervisor to build one, or even code one yourself!
+    % endif
 Fields:
   - Client is currently charged with a violent felony offense: MandatoryFelonyCheck1
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Client has at least two other prior violent felony offenses on rap sheet regardless of length of sentence: MandatoryFelonyCheck2
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Client was previously sentenced as a second violent felony offender (On the closest violent felony in time to the current charged violent felony): MandatoryFelonyCheck3
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - The current VFO occurred within 10 years of the client’s first (of the two) violent felony sentence.<br>a. This 10-year period refers to 10 years of “street time”<br>b. That means you must look at the entire period of time between the commission of the current VFO and the clients first VFO sentence. Any jail time served must be subtracted from this time period <br>c.  After subtracting, the amount of time remaining must be less than 10 years : MandatoryFelonyCheck4
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Order prior plea minutes for both of the prior violent felonies: MandatoryFelonyCheck5
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Order the prior sentence minutes for both prior violent felonies: MandatoryFelonyCheck6
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Order correction records on all jail time during the 10-year period: MandatoryFelonyCheck7
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - If people are relying on an out of state conviction order minutes of plea, sentence and correction time from that jurisdiction as well as obtain the statutory elements of the convicted crime: MandatoryFelonyCheck8
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
   - Notify the Legal Director ASAP following Criminal Court arraignment: MandatoryFelonyCheck9
     datatype: yesno
-    js show if: |
-      val("ClientPriors") == "Mandatory"
+    show if: 
+      code: |
+        ClientPriors == "Mandatory"
 section: checklist
 ---
 event: welcome_back

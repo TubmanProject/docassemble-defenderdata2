@@ -43,9 +43,9 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.defenderdata2',
-      version='0.0.2',
+      version='0.0.3',
       description=('A docassemble extension.'),
-      long_description='# docassemble.defenderdata\r\n\r\nA docassemble extension.\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, quinten@lemmalegal.com\r\n\r\n',
+      long_description='# docassemble.defenderdata\r\n\r\nA docassemble extension.\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, quinten@lemmalegal.com\r\n\r\nMike Eidlin\r\n\r\nChris Boyle\r\n\r\nRuss Matson\r\n\r\n',
       long_description_content_type='text/markdown',
       author='Quinten Steenhuis',
       author_email='quinten@lemmalegal.com',
