@@ -1,0 +1,523 @@
+---
+sections:
+  - welcome_back: Introduction
+  - intake: Intake
+  - checklist: Checklist
+  - tracker: Add an event
+  - closeout: Closeout Report
+  - send_events: Send Calendar Invite
+  - cover_sheet: Download/Print Cover Sheet
+  - read_qr_code: Scan case ID
+progressive: False
+---
+features:
+  navigation: True
+  progress bar: True
+---
+objects:
+  - client: Individual
+  - events: DAList.using(object_type=DAObject, there_are_any=True, complete_attribute='type', there_is_another=False)
+  - event_ics: DAFile
+  - visualization_image: DAFile
+---
+# reconsider: True
+code: |
+  import matplotlib.pyplot as plt
+  import pandas
+  
+  plt.close() # Remove any existing plots from memory
+  visualization_image.initialize(filename="plot.png") 
+    
+  # header_output, contents = events.table.header_and_contents()  
+  # df = pandas.DataFrame.from_records(contents, columns=header_output)
+  
+  df_friendly = list()
+  
+  for event in events:
+    df_friendly.append({'Date': format_date(event.date, 'MM/dd/yyyy'), 'Offer': event.value})
+    
+  df = pandas.DataFrame(df_friendly)
+  fig, ax= plt.subplots()  
+  ax.plot(df['Date'],df['Offer'], '*')
+  for event in events:
+    ax.annotate(event.type, (format_date(event.date, 'MM/dd/yyyy'), event.value))
+  
+  plt.legend()
+  
+  # Use the file path we created above to store the completed figure
+  plt.savefig(visualization_image.path())
+  
+  saved_visualization = True
+---
+mandatory: True
+code: |
+  menu_items = [ action_menu_item('Roadmap', 'road_map') ]
+---
+initial: True
+code: |
+  if returning_user(minutes=0.5):
+    welcome_back
+---
+comment: |
+  This code block controls question order  
+mandatory: True
+code: |
+  welcome_back
+  # client.name.first
+  # events.gather()
+  tracker
+  # download
+---
+reconsider: True
+code: |
+  event_ics.initialize(filename='events.ics')
+  from ics import Calendar, Event
+  c = Calendar()
+  for event in events:
+    if event.type == "new_date":
+      e = Event()
+      e.name = "New Court date for " + ClientCaseID
+      e.begin = text_type(format_datetime(event.date, 'yyyyMMdd hh:mm:ss'))
+      c.events.add(e)
+      
+  event_ics.write(bytearray(str(c), encoding='utf-8'), binary=True)
+  write_file = True
+---
+question: |
+  Your email address
+fields:
+  - Email: user_email
+    datatype: email
+---
+need: write_file
+reconsider: True
+code: |
+  send_email(to=user_email,subject="New court date",attachments=event_ics)
+  send_event_email = True
+---
+need:
+  - send_event_email
+event: send_events
+question: |
+  OK, we sent the email.
+subquestion: |
+  You can also download the calendar invite:
+  ${event_ics}
+---
+continue button field: intake
+question: |
+  Client Intake
+fields:
+  - Intake Date: DateIntake
+    datatype: date
+  - Case ID: ClientCaseID
+  - Docket/Ind Number: ClientDocketNum
+  - Assigned Attorney: AttyAssigned
+  - Charge: ClientChargeInitial
+  - Sentence Min (in months): SentenceMinInitial
+    datatype: number
+  - Sentence Max (in months): SentenceMaxInitial
+    datatype: number
+  - Client In: ClientInOut
+    datatype: yesno 
+    required: False    
+  - Ethnicity: ClientEthnicity
+    choices:
+      - White
+      - Hispanic or Latino
+      - Black or African American
+      - Native American or American Indian
+      - Asian or Pacific Islander
+      - Other
+    required: False
+  - Zip code: ClientZip  
+    required: False
+  - Assigned Gender: ClientGenderAssigned
+    choices:
+      - Male: male
+      - Female: female
+      - Non-binary/Third gender/Other: other
+    required: False
+  - Expressed Gender: ClientGenderExpressed
+    choices:
+      - Male: male
+      - Female: female
+      - Non-binary/Third gender/Other: other
+    required: False
+  - Age: ClientAge
+    choices:
+      - JO
+      - YO
+      - 19-25
+      - 25-35
+      - 35-45
+      - 45-55
+      - 55-older 
+    required: False
+  - Prior Record: ClientPriors
+    choices:
+      - Non-Predicate
+      - Predicate
+      - Violent Predicate
+      - Mandatory
+      - No Record
+      - First Arrest    
+    required: False  
+  - Judge: JudgeInitial
+    required: False
+  - Part: CourtRoom
+    required: False
+  - Assigned DA: DAInitial
+    required: False
+  - Trial Bureau: TrialBureau
+    choices:
+      - 30
+      - 40
+      - 50
+      - 60
+      - 70
+      - 80
+      - Special Narcotics 
+      - Special Victims   
+    required: False
+  - First Offer: Offer
+    choices:
+      - No Offer/Reccomendation
+      - Recommendation 
+      - Reduced Charge
+      - Repleader
+      - Dismissal
+  - Jail Time (In Months): OfferJailTime
+    datatype: number
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader" 
+  - Probation (In Months): OfferProbation
+    datatype: number
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader" 
+  - Program: OfferProgram
+    datatype: yesno
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader"       
+  - ACD: OfferACD
+    datatype: yesno
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader"       
+section: intake
+---
+continue button field: checklist
+question: |
+    ${ClientChargeInitial} Checklist for ${ClientCaseID}
+Fields:
+  - Client is currently charged with a violent felony offense: MandatoryFelonyCheck1
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Client has at least two other prior violent felony offenses on rap sheet regardless of length of sentence: MandatoryFelonyCheck2
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Client was previously sentenced as a second violent felony offender (On the closest violent felony in time to the current charged violent felony): MandatoryFelonyCheck3
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - The current VFO occurred within 10 years of the client’s first (of the two) violent felony sentence.<br>a. This 10-year period refers to 10 years of “street time”<br>b. That means you must look at the entire period of time between the commission of the current VFO and the clients first VFO sentence. Any jail time served must be subtracted from this time period <br>c.  After subtracting, the amount of time remaining must be less than 10 years : MandatoryFelonyCheck4
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Order prior plea minutes for both of the prior violent felonies: MandatoryFelonyCheck5
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Order the prior sentence minutes for both prior violent felonies: MandatoryFelonyCheck6
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Order correction records on all jail time during the 10-year period: MandatoryFelonyCheck7
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - If people are relying on an out of state conviction order minutes of plea, sentence and correction time from that jurisdiction as well as obtain the statutory elements of the convicted crime: MandatoryFelonyCheck8
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+  - Notify the Legal Director ASAP following Criminal Court arraignment: MandatoryFelonyCheck9
+    datatype: yesno
+    js show if: |
+      val("ClientPriors") == "Mandatory"
+section: checklist
+---
+event: welcome_back
+question: |
+  Welcome to Beyond Verdict
+subquestion: |
+  You are currently in the
+  **${ nav.get_section(display=True) }**
+  section.
+
+  ${ nav }
+  
+  Click a section heading to jump to that task.
+---
+event: road_map
+question: |
+  Roadmap
+subquestion: |
+  You are currently in the
+  **${ nav.get_section(display=True) }**
+  section.
+
+  ${ nav }
+
+  Press "Continue" to resume the
+  interview.
+buttons:
+  Continue: continue
+---
+question: |
+  Add an event
+fields:
+  - Offer value (in months): events[i].value
+    datatype: number
+    default: 5
+  - Events: events[i].type
+    # datatype: checkboxes
+    choices:
+      - Next court date: new_date
+      - Different Offer
+      - Rearrest
+      - Investigator
+      - Social Worker
+      - New DA
+      - New Judge
+      - Police / Witness Problem
+      - Discovery Arriving
+      - Motion Filed
+      - Motion Decided 
+      - Charges Dropped
+      - Charges Added
+      - Brady
+      - Proffer
+      - Client In
+      - Client Out
+      - Assigned Attorney Change #New Attorney Name
+      - Hearing Held #Hearing Type
+      - Trial Start
+      - Trial End #Verdict Not Guilty, Guilty, Guilty of Lesser, Hung, Mistrial
+      - Psychiatric Exam (730) Ordered
+      - Psychiatric Exam (730) Results #fit unfit
+      - Other
+  - Date of event: events[i].date
+    datatype: date
+    default: ${format_date(today(), format='yyyy-MM-dd')}
+    hide if: 
+      variable: events[i].type
+      is: "new_date"
+  - Time of Event: events[i].Time
+    choices:
+      - AM
+      - PM
+    hide if: 
+      variable: events[i].type
+      is: "new_date"    
+  - What is the new charge?: RearrestCharge
+    show if: 
+      variable: events[i].type
+      is: "Rearrest"
+  - What is the name of the investigator?: InvestigatorName
+    show if: 
+      variable: events[i].type
+      is: "Investigator"  
+  - What is the name of the social worker?: SWName
+    show if: 
+      variable: events[i].type
+      is: "Social Worker" 
+  - What is the name of the new DA?: DAName
+    show if: 
+      variable: events[i].type
+      is: "New DA" 
+  - What is the name of the new Judge?: JudgeName
+    show if: 
+      variable: events[i].type
+      is: "New Judge" 
+  - What is the motion type?: MotionType
+    js show if: |
+      val("events[i].type") == "Motion Filed" || val("events[i].type") == "Motion Decided"
+  - How was the motion decided?: MotionDec
+    choices:
+      - Granted
+      - Denied
+    show if: 
+      variable: events[i].type
+      is: "Motion Decided"       
+  - What Charge was added?: ChargeAdded
+    show if: 
+      variable: events[i].type
+      is: "Charges Added"
+  - What Charge was dropped?: ChargeDropped
+    show if: 
+      variable: events[i].type
+      is: "Charges Dropped" 
+  - Who is the new Attorney?: AssignedAttyNew
+    show if: 
+      variable: events[i].type
+      is: "Assigned Attorney Change"      
+  - What type of hearing?: HearingHeld
+    show if: 
+      variable: events[i].type
+      is: "Hearing Held"
+  - How was the hearing decided?: HearingDec
+    choices:
+      - Granted
+      - Denied
+    show if: 
+      variable: events[i].type
+      is: "Hearing Held"
+  - What was the result of the trial?: TrialVerdict
+    choices:
+      - Not Guilty
+      - Guilty 
+      - Guilty of Lesser
+      - Hung
+      - Mistrial
+    show if: 
+      variable: events[i].type
+      is: "Trial End"
+  - How was the result of the Psychiatric Exam?: PsychExamResult
+    choices:
+      - Fit
+      - Unfit 
+    show if: 
+      variable: events[i].type
+      is: "Psychiatric Exam (730) Results"
+  - New Offer: Offer
+    choices:
+      - No Offer/Reccomendation
+      - Recommendation 
+      - Reduced Charge
+      - Repleader
+      - Dismissal
+    show if: 
+      variable: events[i].type
+      is: "Different Offer"    
+  - Jail Time (In Months): OfferJailTime
+    datatype: number
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader" 
+  - Probation (In Months): OfferProbation
+    datatype: number
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader" 
+  - Program: OfferProgram
+    datatype: yesno
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader"
+  - ACD: OfferACD
+    datatype: yesno
+    js show if: |
+      val("Offer") == "Recommendation" || val("Offer") == "Reduced Charge" || val("Offer") == "Repleader"       
+  - Attorney Opinion of Offer: AttyOfferOp
+    choices:
+      - Thumbs Up
+      - Thumbs Down
+    show if: 
+      variable: events[i].type
+      is: "Different Offer"    
+  - Client Opinion of Offer: ClientOfferOp
+    choices:
+      - Thumbs Up
+      - Thumbs Down
+    show if: 
+      variable: events[i].type
+      is: "Different Offer"    
+  - New Court Date: events[i].date
+    datatype: datetime
+    show if:
+      variable: events[i].type
+      is: "new_date"
+---
+question: |
+  Any new events?
+yesno: events.there_is_another
+section: tracker
+---
+question: |
+  Close Out Report
+fields:
+  - Closeout Date: DateCloseout
+  - Jail Time (In Months): OfferJailTime
+    datatype: number
+  - Probation (In Months): OfferProbation
+    datatype: number
+  - Program: OfferProgram
+    datatype: yesno
+  - ACD: OfferACD
+    datatype: yesno
+  - Attorney Opinion: AttyOp
+    choices:
+      - Thumbs Up 
+      - Thumbs Down
+  - Client Opinion: ClientOp
+    choices:
+      - Thumbs Up 
+      - Thumbs Down
+section: Closeout Report
+continue button field: closeout
+---
+table: events.table
+rows: events
+columns:
+  - Event: |
+      row_item.type
+  - Date: |
+      row_item.date
+  - Offer: |
+      row_item.value
+edit:
+  - name
+---
+need:
+  - saved_visualization
+event: tracker
+question: |
+  Events
+subquestion: |
+  ${events.table}
+  
+  ${events.add_action()}
+  
+  ${visualization_image.show(width=450)}
+  
+  [Download this information](${ events.table.export(filename=ClientCaseID+ '-events.xlsx', title='events').url_for() })
+---
+event: cover_sheet
+question: |
+  Download cover sheet
+subquestion: |
+  ${cover_sheet_with_qr}
+---
+attachment:
+  name: Cover Sheet
+  variable name: cover_sheet_with_qr
+  filename: cover_sheet
+  content: |
+    [BOLDCENTER]Client Cover Sheet
+    
+    ${qr_code(ClientCaseID)}
+---
+event: read_qr_code
+question: |
+  OK, we checked for a QR Code.
+subquestion: |
+  The code we found was ${next(scanned_id)}
+---
+code: |
+  scanned_id = read_qr(cover_sheet_image)
+---
+question: |
+  Upload / take photo of cover sheet
+fields:
+  - Choose the cover sheeet: cover_sheet_image
+    datatype: file
+  
+  
